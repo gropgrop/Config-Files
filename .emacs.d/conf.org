@@ -1,10 +1,6 @@
 #+title: Emacs Config
 #+author: Chris Edling
 #+STARTUP: content
-:PROPERTIES:
-:EXPORT_FILE_NAME: Output/File_Name
-:EXPORT_LATEX_HEADER+: \usepackage[outputdir=Output]{minted}
-:END:
 
 * Making sure emacs doesn't pollute my stuff :)
   This section just ensures that emacs' customize output does not squirt into my config. neato.

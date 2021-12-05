@@ -1,1 +1,270 @@
-/home/ched/.emacs.d/conf.org
+#+title: Emacs Config
+#+author: Chris Edling
+#+STARTUP: content
+:PROPERTIES:
+:EXPORT_FILE_NAME: Output/File_Name
+:EXPORT_LATEX_HEADER+: \usepackage[outputdir=Output]{minted}
+:END:
+
+* Making sure emacs doesn't pollute my stuff :)
+  This section just ensures that emacs' customize output does not squirt into my config. neato.
+
+#+begin_src emacs-lisp
+(setq custom-file (concat user-emacs-directory "auto.el"))
+(if (file-exists-p custom-file)
+    (load-file custom-file))
+#+end_src
+
+* Bootstrapping
+  Of course, we need our package archives.
+#+begin_src emacs-lisp
+(require 'package)
+(setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
+ 		   ("melpa" . "https://melpa.org/packages/")
+		   ("org" . "http://orgmode.org/elpa/")))
+(package-initialize)
+#+end_src
+
+Now, for a bunch of other neat stuff:
+
+#+begin_src emacs-lisp
+(eval-after-load 'gnutls
+  '(add-to-list 'gnutls-trustfiles "/etc/ssl/cert.pem"))
+(unless (package-installed-p 'async)
+  (package-refresh-contents)
+  (package-install 'async))
+(unless (package-installed-p 'quelpa)
+  (with-temp-buffer
+    (url-insert-file-contents "https://raw.githubusercontent.com/quelpa/quelpa/master/quelpa.el")
+    (eval-buffer)
+    (quelpa-self-upgrade)))
+(let ((path (concat (file-name-as-directory (concat user-emacs-directory "quelpa")) "melpa")))
+  (if (not (file-exists-p path))
+      (make-directory path))
+  (let ((path (concat (file-name-as-directory path) "recipes")))
+    (if (not (file-exists-p path))
+	(make-directory path))))
+(setq use-package-always-ensure t) ; docs say this is deprecated but things break when it's not included
+
+(quelpa
+ '(quelpa-use-package
+   :fetcher git
+   :url "https://github.com/quelpa/quelpa-use-package.git"))
+(require 'quelpa-use-package)
+
+(use-package use-package-ensure-system-package
+  :ensure t)
+#+end_src
+
+* Theme + Modeline + Neat stuff
+  First, all the icons. This is necessary for doom-modeline. After initalization, you MUST RUN M-x all-the-icons-install-fonts. I wish i knew a workaround at the moment. Also sets up org-bullets, and rainbow delimiters. doom-old-hope is nice, for my light theme i like to use doom-gruvbox-light.
+
+#+begin_src emacs-lisp
+(use-package all-the-icons
+  :if (display-graphic-p))
+
+(use-package doom-themes
+  :config
+  (load-theme 'doom-old-hope t)
+  (set-face-attribute 'default nil :family "CaskaydiaCove Nerd Font Mono" :height 95))
+
+(use-package rainbow-delimiters
+  :config
+  (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
+
+;custom runs: after package loaded, init runs before 
+(use-package doom-modeline
+  :after all-the-icons
+  :hook
+  (after-init . doom-modeline-mode))
+#+end_src
+
+* Getting rid of dumb keybinds
+
+  goodbye stinky
+
+#+begin_src emacs-lisp
+(global-unset-key (kbd "C-z"))
+(global-unset-key (kbd "C-x C-z"))
+#+end_src
+
+* Org-Roam
+  Org roam is neat, organizes everything in a folder stored in home directory titled: .orgfiles. Within this directory, you must create a folder titled "images" for org-download.
+
+#+begin_src emacs-lisp
+(use-package org-roam
+  :ensure t
+  :custom
+  (org-roam-directory (file-truename "~/.orgfiles"))
+  (org-roam-completion-everywhere t)
+  (org-roam-v2-ack t)
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+	 ("C-c n f" . org-roam-node-find)
+	 ("C-c n g" . org-roam-graph)
+	 ("C-c n i" . org-roam-node-insert)
+	 ;; dailies
+	 ("C-c n j" . org-roam-dailies-capture-today)
+	 :map org-mode-map
+	 ("C-M-i"   . completion-at-point))
+  :config
+  (org-roam-db-autosync-mode)
+;; if using org-roam-protocol
+  (require 'org-roam-protocol))
+
+(setq org-roam-mode-section-functions
+      (list #'org-roam-backlinks-section
+            #'org-roam-reflinks-section
+            #'org-roam-unlinked-references-section
+            ))
+
+(add-to-list 'display-buffer-alist
+	     '("\\*org-roam\\*"
+	       (display-buffer-in-direction)
+	       (direction . right)
+	       (window-width . 0.33)
+	       (window-height . fit-window-to-buffer)))
+#+end_src
+
+* Org-Download
+  A neat utility to include screenshots in org files
+
+#+begin_src emacs-lisp
+  (use-package org-download
+    :after org
+    :custom
+    (org-download-image-dir "~/.orgfiles/images")
+    (org-download-timestamp "\"\"")
+    (org-download-screenshot-method "flameshot")
+    (org-download-backend "wget")
+    :bind
+    (:map org-mode-map
+	  (("s-Y" . org-download-screenshot)
+	   ("s-y" . org-download-clipboard))))
+#+end_src
+
+There is a small issue with org download at the moment, images must be on the clipboard initially. s-Y DOES NOT WORK. Screenshots are saved, yet do not get inserted into the buffer. emacs just freezes. Use screenshot machine of your choice, and use s-y to insert it into the buffer. The screenshot will also be saved to the ~/.orgfiles/images directory. Remember, you must make that directory.
+
+This link https://github.com/abo-abo/org-download/pull/165/commits/cfc8790a28d29ddc285153977d2fc52cd96caabc Outlines changes, that will suppress the generation of the #+Download tag.
+
+* General Org
+  Showing inline images:
+#+begin_src emacs-lisp
+(setq org-display-inline-images t)
+(setq org-redisplay-inline-images t)
+(setq org-startup-with-inline-images "inlineimages")
+#+end_src
+  Org Agenda Path:
+
+#+begin_src emacs-lisp
+(defun sa-find-org-file-recursively (&optional directory filext)
+    "Return .org and .org_archive files recursively from DIRECTORY.
+  If FILEXT is provided, return files with extension FILEXT instead."
+    (interactive "DDirectory: ")
+    (let* (org-file-list
+	   (case-fold-search t)	      ; filesystems are case sensitive
+	   (file-name-regex "^[^.#].*") ; exclude dot, autosave, and backup files
+	   (filext (or filext "org$\\\|org_archive"))
+	   (fileregex (format "%s\\.\\(%s$\\)" file-name-regex filext))
+	   (cur-dir-list (directory-files directory t file-name-regex)))
+      ;; loop over directory listing
+      (dolist (file-or-dir cur-dir-list org-file-list) ; returns org-file-list
+	(cond
+	 ((file-regular-p file-or-dir) ; regular files
+	  (if (string-match fileregex file-or-dir) ; org files
+	      (add-to-list 'org-file-list file-or-dir)))
+	 ((file-directory-p file-or-dir)
+	  (dolist (org-file (sa-find-org-file-recursively file-or-dir filext)
+			    org-file-list) ; add files found to result
+	    (add-to-list 'org-file-list org-file)))))))
+(setq org-agenda-text-search-extra-files
+      (append (sa-find-org-file-recursively "~/.orgfiles")
+              (sa-find-org-file-recursively "~/.orgfiles/daily")))
+#+end_src
+
+* Org Babel
+  We need to configure our compilers, for different code snippets.
+  I still don't know if this section is actually necessary tbh.
+#+begin_src emacs-lisp
+(org-babel-do-load-languages
+'org-babel-load-languages
+'((python . t)))
+#+end_src
+* Some neat stuff
+  Here, I have pdf-tools, a better pdf viewer within emacs, dired+, and a nifty dashboard configured. When setting up, make sure you have the images. Here's mine :) (definitely won't show outside of my computer lol)
+It doesn't paste gifs. Whatever.
+
+#+begin_src emacs-lisp
+(use-package pdf-tools
+  :config (pdf-tools-install))
+
+(use-package dired+
+  :quelpa (dired+ :fetcher github :repo "emacsmirror/dired-plus"))
+
+(use-package dashboard
+  :ensure t
+  :init 
+  (setq dashboard-items '((recents  . 5)))
+    (setq dashboard-set-navigator t)
+    (setq dashboard-startup-banner "~/emacssplash/foiled-again.gif")
+    (setq dashboard-banner-logo-title "                                        ")
+    :config
+    (dashboard-setup-startup-hook))
+#+end_src
+
+* Misc odds-and-ends
+  Initial scratch message, visual tweaks, powerline stuff (not sure i even need that, latex-mode stuff, yknow.
+#+begin_src emacs-lisp
+(use-package verilog-mode)
+
+(setq initial-scratch-message "")
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
+(global-visual-line-mode 1)
+(setq powerline-default-separator 'arrow-fade)
+(setq TeX-auto-save t)
+(setq TeX-parse-self t)
+(setq TeX-engine 'xetex)
+(setq TeX-PDF-mode t)
+(setq-default TeX-master nil)
+#+end_src
+
+* Theme Toggling
+  Courtesy of Maxim Kim
+  Toggle between light mode and dark mode
+
+#+begin_src emacs-lisp
+  (defvar *haba-theme-dark* 'doom-old-hope)
+  (defvar *haba-theme-light* 'doom-gruvbox-light)
+  (defvar *haba-current-theme* *haba-theme-dark*)
+
+  ;; disable other themes before loading new one
+  (defadvice load-theme (before theme-dont-propagate activate)
+    "Disable theme before loading new one."
+    (mapc #'disable-theme custom-enabled-themes))
+
+
+  (defun haba/next-theme (theme)
+    (if (eq theme 'default)
+	(disable-theme *haba-current-theme*)
+      (progn
+	(load-theme theme t)))
+    (setq *haba-current-theme* theme))
+
+  (defun haba/toggle-theme ()
+    (interactive)
+    (cond ((eq *haba-current-theme* *haba-theme-dark*) (haba/next-theme *haba-theme-light*))
+	  ((eq *haba-current-theme* *haba-theme-light*) (haba/next-theme 'default))
+	  ((eq *haba-current-theme* 'default) (haba/next-theme *haba-theme-dark*))))
+  (global-set-key [C-tab] 'haba/toggle-theme)
+#+end_src
+
+
+  
+
+
+
+
+
+
+

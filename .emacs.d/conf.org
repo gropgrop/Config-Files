@@ -226,7 +226,7 @@ It doesn't paste gifs. Whatever.
 #+end_src
 
 * Theme Toggling
-  Courtesy of Maxim Kim
+  Courtesy of Maxim Kim.
   Toggle between light mode and dark mode
 
 #+begin_src emacs-lisp

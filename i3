@@ -1,0 +1,1 @@
+/home/ched/.config/i3

@@ -1,0 +1,1 @@
+/home/ched/.emacs.d/init.el

@@ -29,21 +29,21 @@ link to the specified URL.-->
     <link id="nowcast" url="http://www.yr.no/place/Sweden/Östergötland/Linköping/varsel_nu.xml" />
   </links>
   <meta>
-    <lastupdate>2022-01-21T15:17:00</lastupdate>
-    <nextupdate>2022-01-21T16:17:00</nextupdate>
+    <lastupdate>2022-01-21T16:13:00</lastupdate>
+    <nextupdate>2022-01-21T17:13:00</nextupdate>
   </meta>
   <sun rise="2022-01-21T08:24:39" set="2022-01-21T15:53:41" />
   <forecast>
     <tabular>
-      <time from="2022-01-21T15:00:00" to="2022-01-21T18:00:00" period="2">
-        <!-- Valid from 2022-01-21T15:00:00 to 2022-01-21T18:00:00 -->
-        <symbol number="2" numberEx="2" name="Fair" var="02d" />
+      <time from="2022-01-21T16:00:00" to="2022-01-21T18:00:00" period="2">
+        <!-- Valid from 2022-01-21T16:00:00 to 2022-01-21T18:00:00 -->
+        <symbol number="1" numberEx="1" name="Clear sky" var="01d" />
         <precipitation value="0" />
-        <!-- Valid at 2022-01-21T15:00:00 -->
-        <windDirection deg="350.6" code="N" name="North" />
-        <windSpeed mps="3.6" name="Gentle breeze" />
-        <temperature unit="celsius" value="1" />
-        <pressure unit="hPa" value="1016.3" />
+        <!-- Valid at 2022-01-21T16:00:00 -->
+        <windDirection deg="345.1" code="NNW" name="North-northwest" />
+        <windSpeed mps="2.9" name="Light breeze" />
+        <temperature unit="celsius" value="0" />
+        <pressure unit="hPa" value="1016.9" />
       </time>
       <time from="2022-01-21T18:00:00" to="2022-01-22T00:00:00" period="3">
         <!-- Valid from 2022-01-21T18:00:00 to 2022-01-22T00:00:00 -->
@@ -92,7 +92,7 @@ link to the specified URL.-->
         <!-- Valid at 2022-01-22T18:00:00 -->
         <windDirection deg="223.1" code="SW" name="Southwest" />
         <windSpeed mps="1.9" name="Light breeze" />
-        <temperature unit="celsius" value="-1" />
+        <temperature unit="celsius" value="-2" />
         <pressure unit="hPa" value="1024.4" />
       </time>
       <time from="2022-01-23T00:00:00" to="2022-01-23T06:00:00" period="0">

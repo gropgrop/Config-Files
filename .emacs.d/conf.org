@@ -88,37 +88,43 @@ Now, for a bunch of other neat stuff:
   Org roam is neat, organizes everything in a folder stored in home directory titled: .orgfiles. Within this directory, you must create a folder titled "images" for org-download.
 
 #+begin_src emacs-lisp
-(use-package org-roam
-  :ensure t
-  :custom
-  (org-roam-directory (file-truename "~/.orgfiles"))
-  (org-roam-completion-everywhere t)
-  (org-roam-v2-ack t)
-  :bind (("C-c n l" . org-roam-buffer-toggle)
-	 ("C-c n f" . org-roam-node-find)
-	 ("C-c n g" . org-roam-graph)
-	 ("C-c n i" . org-roam-node-insert)
-	 ;; dailies
-	 ("C-c n j" . org-roam-dailies-capture-today)
-	 :map org-mode-map
-	 ("C-M-i"   . completion-at-point))
-  :config
-  (org-roam-db-autosync-mode)
-;; if using org-roam-protocol
-  (require 'org-roam-protocol))
+  (use-package org-roam
+    :ensure t
+    :custom
+    (org-roam-directory (file-truename "~/.orgfiles"))
+    (org-roam-completion-everywhere t)
+    (org-roam-v2-ack t)
+    :bind (("C-c n l" . org-roam-buffer-toggle)
+	   ("C-c n f" . org-roam-node-find)
+	   ("C-c n g" . org-roam-graph)
+	   ("C-c n i" . org-roam-node-insert)
+	   ;; dailies
+	   ("C-c n j" . org-roam-dailies-capture-today)
+	   :map org-mode-map
+	   ("C-M-i"   . completion-at-point))
+    :config
+    (org-roam-db-autosync-mode)
+  ;; if using org-roam-protocol
+    (require 'org-roam-protocol))
 
-(setq org-roam-mode-section-functions
-      (list #'org-roam-backlinks-section
-            #'org-roam-reflinks-section
-            #'org-roam-unlinked-references-section
-            ))
+  (setq org-roam-mode-section-functions
+	(list #'org-roam-backlinks-section
+	      #'org-roam-reflinks-section
+	      #'org-roam-unlinked-references-section
+	      ))
 
-(add-to-list 'display-buffer-alist
-	     '("\\*org-roam\\*"
-	       (display-buffer-in-direction)
-	       (direction . right)
-	       (window-width . 0.33)
-	       (window-height . fit-window-to-buffer)))
+  (add-to-list 'display-buffer-alist
+	       '("\\*org-roam\\*"
+		 (display-buffer-in-direction)
+		 (direction . right)
+		 (window-width . 0.33)
+		 (window-height . fit-window-to-buffer)))
+#+end_src
+
+And to suppress the org roam migrate warning
+
+#+begin_src emacs-lisp
+(setq org-roam-v2-ack t)
 #+end_src
 
 * Org-Download
@@ -149,9 +155,9 @@ This link https://github.com/abo-abo/org-download/pull/165/commits/cfc8790a28d29
 (setq org-redisplay-inline-images t)
 (setq org-startup-with-inline-images "inlineimages")
 #+end_src
-  Org Agenda Path:
+  Org Agenda Path: nevermind lmfao
 
-#+begin_src emacs-lisp
+
 (defun sa-find-org-file-recursively (&optional directory filext)
     "Return .org and .org_archive files recursively from DIRECTORY.
   If FILEXT is provided, return files with extension FILEXT instead."
@@ -175,16 +181,63 @@ This link https://github.com/abo-abo/org-download/pull/165/commits/cfc8790a28d29
 (setq org-agenda-text-search-extra-files
       (append (sa-find-org-file-recursively "~/.orgfiles")
               (sa-find-org-file-recursively "~/.orgfiles/daily")))
+
+#+BEGIN_SRC emacs-lisp
+(setq org-agenda-files '("~/.orgfiles/daily"))
+#+END_SRC
+
+#+RESULTS:
+| ~/.orgfiles/daily |
+
+Electric indent mode is nice, but it can be a big pain in org-mode. 
+
+#+begin_src emacs-lisp
+(add-hook 'org-mode-hook (lambda() (electric-indent-local-mode -1)))
 #+end_src
 
 * Org Babel
-  We need to configure our compilers, for different code snippets.
-  I still don't know if this section is actually necessary tbh.
+  For org-babel, we need to load our languages. 
 #+begin_src emacs-lisp
 (org-babel-do-load-languages
 'org-babel-load-languages
 '((python . t)))
 #+end_src
+* Autocomplete
+
+Initially, I was gonna use eglot. Then I decided to use company. Then i just decided to use auto-complete, jedi, and irony mode.
+
+#+begin_src emacs-lisp
+  (use-package auto-complete
+    :ensure t
+    :init
+    (progn
+      (ac-config-default)
+      (global-auto-complete-mode t)))
+
+  (use-package jedi
+    :ensure t
+    :init
+    (add-hook 'python-mode-hook 'jedi:setup)
+    (add-hook 'python-mode-hook 'jedi:ac-setup))
+#+end_src
+Jedi requires that virtualenv is installed, via pip install virtualenv
+
+* Yasnippet
+snippets n stuff!
+
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :ensure t
+    :init
+    (yas-global-mode t))
+#+end_src
+Now, add some ez default snippets
+
+#+begin_src emacs-lisp
+  (use-package yasnippet-snippets
+    :ensure t)
+#+end_src
+
 * Some neat stuff
   Here, I have pdf-tools, a better pdf viewer within emacs, dired+, and a nifty dashboard configured. When setting up, make sure you have the images. Here's mine :) (definitely won't show outside of my computer lol)
 It doesn't paste gifs. Whatever.
@@ -264,3 +317,11 @@ It doesn't paste gifs. Whatever.
 
 
 
+
+* C# Weirdness
+don't worry about this, honestly.
+
+#+begin_src emacs-lisp
+  (use-package powershell
+       :ensure t)
+#+end_src

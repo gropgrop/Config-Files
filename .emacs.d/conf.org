@@ -1,5 +1,5 @@
 #+title: Emacs Config
-#+author: Chris Edling
+#+author:
 #+STARTUP: content
 
 * Making sure emacs doesn't pollute my stuff :)
@@ -155,7 +155,7 @@ This link https://github.com/abo-abo/org-download/pull/165/commits/cfc8790a28d29
 (setq org-redisplay-inline-images t)
 (setq org-startup-with-inline-images "inlineimages")
 #+end_src
-  Org Agenda Path: nevermind lmfao
+  Org Agenda Path: nevermind lmfao I deleted this shit
 
 
 (defun sa-find-org-file-recursively (&optional directory filext)
@@ -185,9 +185,6 @@ This link https://github.com/abo-abo/org-download/pull/165/commits/cfc8790a28d29
 #+BEGIN_SRC emacs-lisp
 (setq org-agenda-files '("~/.orgfiles/daily"))
 #+END_SRC
-
-#+RESULTS:
-| ~/.orgfiles/daily |
 
 Electric indent mode is nice, but it can be a big pain in org-mode. 
 

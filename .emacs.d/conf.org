@@ -84,7 +84,45 @@ Now, for a bunch of other neat stuff:
 (global-unset-key (kbd "C-x C-z"))
 #+end_src
 
-* Org-Roam
+* Matlab
+
+EEEEEEEEE
+#+begin_src emacs-lisp
+;; 1. MATLAB
+;; (load-library "matlab-load")            ; in MELPA
+(add-to-list 'load-path "/home/ched/.emacs.d/matlab-mode/matlab-emacs-src~")
+(require 'matlab-load)
+(autoload 'matlab-mode "matlab" "Matlab Editing Mode" t)
+(setq exec-path (append exec-path '("/home/ched/mathworks/r2021b/bin")))
+;; customization
+(setq matlab-indent-level 4)
+(setq matlab-highlight-block-match-flag t)
+(setq matlab-shell-command-switches '("-nodesktop -nosplash"))
+
+; enable CEDET---not sure what it's useful for
+(matlab-cedet-setup)
+
+; matlab-mode has support for Completion engine. Using tools in CEDET, Emacs
+; will parse your M files and provide pretty good completion and code
+; decoration.
+
+; enable MLINT
+(setq mlint-programs (quote ("/home/ched/mathworks/r2021b/bin/glnxa64/mlint")))
+(add-hook 'matlab-mode-hook (lambda () (mlint-minor-mode 1)))
+(setq matlab-show-mlint-warnings t)
+(setq matlab-highlight-cross-function-variables t)
+;; For R, need install.packages("lintr")
+
+
+; Customize comment string to '%' only rather than '% $$$'
+(setq matlab-comment-region-s "% ")
+#+end_src
+
+#+RESULTS:
+: % 
+
+* Org
+** Org-Roam
   Org roam is neat, organizes everything in a folder stored in home directory titled: .orgfiles. Within this directory, you must create a folder titled "images" for org-download.
 
 #+begin_src emacs-lisp
@@ -127,7 +165,7 @@ And to suppress the org roam migrate warning
 (setq org-roam-v2-ack t)
 #+end_src
 
-* Org-Download
+** Org-Download
   A neat utility to include screenshots in org files
 
 #+begin_src emacs-lisp
@@ -148,7 +186,7 @@ There is a small issue with org download at the moment, images must be on the cl
 
 This link https://github.com/abo-abo/org-download/pull/165/commits/cfc8790a28d29ddc285153977d2fc52cd96caabc Outlines changes, that will suppress the generation of the #+Download tag.
 
-* General Org
+** General Org
   Showing inline images:
 #+begin_src emacs-lisp
 (setq org-display-inline-images t)
@@ -192,13 +230,175 @@ Electric indent mode is nice, but it can be a big pain in org-mode.
 (add-hook 'org-mode-hook (lambda() (electric-indent-local-mode -1)))
 #+end_src
 
-* Org Babel
+** Org Babel
   For org-babel, we need to load our languages. 
 #+begin_src emacs-lisp
+(setq org-babel-default-header-args:matlab
+ '((:results . "output") (:session . "*MATLAB*")))
+
 (org-babel-do-load-languages
 'org-babel-load-languages
-'((python . t)))
+'((python . t) 
+  (matlab . t)))
 #+end_src
+
+From some dude on stackexchange (explanation inside)
+
+#+begin_src emacs-lisp
+(require 'ob-octave-fix.el nil t)
+#+end_src
+
+#+RESULTS:
+
+Default header args for matlab ;)
+
+#+begin_src emacs-lisp
+(setq org-babel-default-header-args:matlab
+  '((:results . "output") (:session . "*MATLAB*")))
+#+end_src
+
+#+RESULTS:
+
+
+* LaTeX
+
+Just borrowed from devins config, who probably borrowed it from someone else.
+
+#+begin_src emacs-lisp
+(require 'ox-publish)
+
+(use-package org
+  :ensure org-plus-contrib
+  :init
+  (setq org-support-shift-select t)
+  (setq org-src-fontify-natively t
+        org-confirm-babel-evaluate nil
+        org-src-preserve-indentation t)
+  :config
+  (require 'ox-extra)
+  (ox-extras-activate '(ignore-headlines))
+  :custom
+  (org-latex-listings 'minted)
+  (org-latex-minted-options '(("frame" "lines") ("linenos=true")))
+  (org-latex-packages-alist '(("" "minted")))
+  (org-html-doctype "html5")    ; default to HTML5 output
+  (org-html-html5-fancy t)              ; enable fancy new tags
+  (org-html-postamble nil)              ; disable the postamble
+  (org-html-postamble-format '(("en" "<hr></hr><p class=\"author\">Author: %a</p><p class=\"date\">Date: %d</p>")))
+  (org-html-preamble nil)               ; disable the preamble
+  (org-html-metadata-timestamp-format "%u, %B %e, %Y")
+  (org-preview-latex-process-alist
+   (quote
+    ((dvipng :programs ("lualatex" "dvipng")
+             :description "dvi > png" :message "you need to install the programs: latex and dvipng." :image-input-type "dvi" :image-output-type "png" :image-size-adjust
+             (1.0 . 1.0)
+             :latex-compiler
+             ("lualatex -output-format dvi -interaction nonstopmode -output-directory %o %f")
+             :image-converter
+             ("dvipng -fg %F -bg %B -D %D -T tight -o %O %f"))
+     (dvisvgm :programs ("latex" "dvisvgm")
+              :description "dvi > svg" :message "you need to install the programs: latex and dvisvgm." :use-xcolor t :image-input-type "xdv" :image-output-type "svg" :image-size-adjust
+              (1.7 . 1.5) :latex-compiler
+              ("xelatex -no-pdf -interaction nonstopmode -output-directory %o %f")
+              :image-converter ("dvisvgm %f -n -b min -c %S -o %O"))
+     (imagemagick :programs
+                  ("latex" "convert")
+                  :description "pdf > png" :message "you need to install the programs: latex and imagemagick." :use-xcolor t :image-input-type "pdf" :image-output-type "png" :image-size-adjust
+                  (1.0 . 1.0)
+                  :latex-compiler
+                  ("xelatex -no-pdf -interaction nonstopmode -output-directory %o %f")
+                  :image-converter
+                  ("convert -density %D -trim -antialias %f -quality 100 %O")))))
+  (org-preview-latex-default-process 'dvisvgm)
+  :config
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (org-indent-mode)
+              (visual-line-mode)
+              (flyspell-mode)))
+  (require 'ox-latex)
+  (add-to-list 'org-latex-classes
+               '("apa7"
+                 "\\documentclass{apa7}
+\\usepackage{natbib}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+  (add-to-list 'org-latex-classes
+               '("IEEE"
+                 "\\documentclass{IEEEtran}
+\\usepackage{cite}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")))
+  (add-to-list 'org-latex-classes
+               '("manual"
+                 "\\documentclass{memoir}
+\\usepackage{natbib}
+\\openany
+\\usepackage{etoolbox}
+\\makeatletter
+\\patchcmd{\\@smemmain}{\\cleardoublepage}{\\clearpage}{}{}
+\\patchcmd{\\@smemmain}{\\cleardoublepage}{\\clearpage}{}{}
+\\def\\maketitle{%
+  \\null
+  \\thispagestyle{empty}%
+  \\vfill
+  \\begin{center}\\leavevmode
+    \\normalfont
+    {\\LARGE\\raggedleft \\@author\\par}%
+    \\hrulefill\\par
+    {\\huge\\raggedright \\@title\\par}%
+    \\vskip 1cm
+%    {\\Large \\@date\\par}%
+  \\end{center}%
+  \\vfill
+  \\null
+  \\clearpage
+  }
+\\frontmatter
+\\makeatother
+\\headstyles{memman}
+\\chapterstyle{demo3}"
+                 ("\\chapter{%s}" . "\\chapter*{%s}")
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")))
+  (add-to-list 'org-latex-classes
+               '("memo"
+                 "\\documentclass[12pt]{article}
+\\usepackage{natbib}
+\\makeatletter
+\\renewcommand\\section{\\@startsection {section}{1}{\\z@}
+                                   {-0.75ex \\@plus -0.3ex \\@minus -.1ex}
+                                   {0.5ex \\@plus.02ex}
+                                   {\\normalfont\\large\\bfseries}}
+\\renewcommand\\subsection{\\@startsection {section}{2}{\\z@}
+                                   {-0.5ex \\@plus -0.2ex \\@minus -.1ex}
+                                   {0.333ex \\@plus.02ex}
+                                   {\\normalfont\\normalsize\\underline}}
+\\renewcommand\\subsubsection{\\@startsection {section}{3}{\\z@}
+                                   {-0.25ex \\@plus -0.1ex \\@minus -0ex}
+                                   {0.167ex \\@plus.02ex}
+                                   {\\normalfont\\normalsize\\textit}}
+\\makeatother"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")))
+  (customize-set-value 'org-latex-hyperref-template "\\hypersetup{
+ pdfauthor={%a},
+ pdftitle={%t},
+ pdfkeywords={%k},
+ pdfsubject={%d},
+ pdfcreator={%c}, 
+ pdflang={%L},
+pdflinkmargin=1pt,
+pdfborderstyle={/S/U/W 1}}\n"))
+#+end_src
+
 * Autocomplete
 
 Initially, I was gonna use eglot. Then I decided to use company. Then i just decided to use auto-complete, jedi, and irony mode.

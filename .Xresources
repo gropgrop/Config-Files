@@ -1,5 +1,6 @@
 Xft.autohint: false
-Rxvt.font: xft:CaskaydiaCove Nerd Font Mono:size=9
+Rxvt.font: xft: CaskaydiaCove Nerd Font Mono-9
+emacs.font: CaskaydiaCove Nerd Font Mono-14
 Xft.lcdfilter: lcddefault
 Xft.hintstyle: hintfull
 Xft.hinting: true

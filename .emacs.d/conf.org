@@ -59,10 +59,14 @@ Now, for a bunch of other neat stuff:
 (use-package all-the-icons
   :if (display-graphic-p))
 
+(use-package humanoid-themes)
+
+(set-face-attribute 'default nil :family "CaskaydiaCove Nerd Font Mono" :height 110)
+
 (use-package doom-themes
   :config
-  (load-theme 'doom-old-hope t)
-  (set-face-attribute 'default nil :family "CaskaydiaCove Nerd Font Mono" :height 95))
+  (load-theme 'doom-old-hope t))
+
 
 (use-package rainbow-delimiters
   :config
@@ -257,12 +261,85 @@ Default header args for matlab ;)
   '((:results . "output") (:session . "*MATLAB*")))
 #+end_src
 
-#+RESULTS:
-
 
 * LaTeX
 
-Just borrowed from devins config, who probably borrowed it from someone else.
+XeLatex - again stolen from devin. Thank u, but this doesnt work with org-ref v3 so here's this giant code block :)
+
++begin_src emacs-lisp
+(setq org-latex-pdf-process
+					; Always need a first pass
+      '("xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f"
+					; bibtex needs some help getting started, so if there is no bibtex file, gen
+					; once generated (second+ pass), could be empty. If they're empty, no need to run:
+        "sh -c 'if [ ! -f %b.bbl -o -s %b.bbl ] ;then bibtex %b; fi'"
+					; A few things (reference spawning/table of contents/figures/etc) change intermediary files
+					; This requires a re-run or two
+        "sh -c 'while grep -q -e \"File \\`%b.out\\' has changed\" -e \"Rerun to get cross-references right\" %b.log; do xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f ;done'"))
++end_src
+#+begin_src emacs-lisp
+(setq org-latex-pdf-process
+      (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+#+end_src
+** Latex Header
+#+begin_src elisp :results silent
+(require 'ob)
+(require 'ob-latex)
+
+(defvar org-babel-default-header-args:latex-header
+  '((:results . "raw") (:exports . "results") (:eval . "only-export")))
+
+(defun org-babel-expand-body:latex-header (body params)
+  (org-babel-expand-body:latex body params))
+
+(defun org-babel-execute:latex-header (body params)
+  (let ((latex_output (org-babel-execute:latex body params)))
+	(replace-regexp-in-string "^" "#+latex_header: " latex_output)
+  ))
+
+(defun org-babel-edit-prep:latex-header (info))
+
+(define-derived-mode latex-header-mode latex-mode "LaTeX Header")
+
+(provide 'ob-latex-header)
+#+end_src
+
+The following adds a =:eval only-export= attribute option to code blocks.
+It is used with the above to ensure that =latex-header= blocks cannot accidentally inject results into the working =.org= buffer.
+
+This is a direct patch from =ob-core.el=.
+
+#+begin_src emacs-lisp :results silent
+(defun org-babel-check-confirm-evaluate (info)
+  "Check whether INFO allows code block evaluation.
+
+Returns nil if evaluation is disallowed, t if it is
+unconditionally allowed, and the symbol `query' if the user
+should be asked whether to allow evaluation."
+  (let* ((headers (nth 2 info))
+	 (eval (or (cdr  (assq :eval headers))
+		   (when (assq :noeval headers) "no")))
+	 (eval-no (member eval '("no" "never")))
+	 (export org-babel-exp-reference-buffer)
+	 (eval-no-export (and export (member eval '("no-export" "never-export"))))
+	 (eval-only-export (and (not export) (equal eval "only-export")))
+	 (noeval (or eval-no eval-no-export eval-only-export))
+	 (query (or (equal eval "query")
+		    (and export (equal eval "query-export"))
+		    (if (functionp org-confirm-babel-evaluate)
+			(funcall org-confirm-babel-evaluate
+				 ;; Language, code block body.
+				 (nth 0 info)
+				 (org-babel--expand-body info))
+		      org-confirm-babel-evaluate))))
+    (cond
+     (noeval nil)
+     (query 'query)
+     (t t))))
+#+end_src
+
+I straight up shit myself trying to make this garbage work so i just stole it from devin who probably stole it from someone else now i can write apa yay
+
 
 #+begin_src emacs-lisp
 (require 'ox-publish)
@@ -399,6 +476,121 @@ pdflinkmargin=1pt,
 pdfborderstyle={/S/U/W 1}}\n"))
 #+end_src
 
+** Latex Previews
+Thanks again devin lmfaooooo
+[[https://github.com/yangsheng6810/org-latex-impatient][org-latex-impatient]].
+
+#+begin_src elisp :results silent
+(defun update-org-latex-fragment-scale ()
+  (let ((text-scale-factor (expt text-scale-mode-step text-scale-mode-amount)))
+    (plist-put org-format-latex-options :scale (* 1.7 text-scale-factor))
+    (setq org-latex-impatient-scale (* 2.6 text-scale-factor))
+    (org-latex-preview '(16)))
+  )
+
+;; Posframe needs to be manually configured
+;; If not done, it will move the mouse to a different part of the screen
+;; which is super annoying and doesn't fix anything on my wm
+(use-package posframe
+  :init
+  (setq posframe-mouse-banish nil))
+
+(use-package org-latex-impatient
+  :after posframe
+  :after org
+  :hook (org-mode . org-latex-impatient-mode)
+  :hook (org-mode . update-org-latex-fragment-scale)
+  :init
+  (setq org-latex-impatient-tex2svg-bin
+        ;; location of tex2svg executable
+        "~/node_modules/mathjax-node-cli/bin/tex2svg")
+  (setq org-latex-impatient-border-color "white")
+  (setq org-latex-impatient-user-latex-definitions
+        ;; MathJax sucks and I really like using siunitx
+        ;; Luckily, I can live with the most basic features
+        ;; While the below is far from perfect, it is good
+        ;; enough for a quick preview. C-c C-x l will give
+        ;; a more acurate preview
+        '("\\newcommand{\\ensuremath}[1]{#1}" 
+          "\\newcommand{\\usepackage}[1]{}"
+          "\\newcommand{\\yocto}{\\text{y}}"
+          "\\newcommand{\\zepto}{\\text{z}}"
+          "\\newcommand{\\atto}{\\text{a}}"
+          "\\newcommand{\\femto}{\\text{f}}"
+          "\\newcommand{\\pico}{\\text{p}}"
+          "\\newcommand{\\nano}{\\text{n}}"
+          "\\newcommand{\\micro}{\\mu}"
+          "\\newcommand{\\milli}{\\text{m}}"
+          "\\newcommand{\\centi}{\\text{c}}"
+          "\\newcommand{\\deci}{\\text{d}}"
+          "\\newcommand{\\deca}{\\text{da}}"
+          "\\newcommand{\\hecto}{\\text{h}}"
+          "\\newcommand{\\kilo}{\\text{k}}"
+          "\\newcommand{\\mega}{\\text{M}}"
+          "\\newcommand{\\giga}{\\text{G}}"
+          "\\newcommand{\\tera}{\\text{T}}"
+          "\\newcommand{\\peta}{\\text{P}}"
+          "\\newcommand{\\exa}{\\text{E}}"
+          "\\newcommand{\\zetta}{\\text{Z}}"
+          "\\newcommand{\\yotta}{\\text{Y}}"
+          "\\newcommand{\\ampere}{\\text{A}}"
+          "\\newcommand{\\candela}{\\text{cd}}"
+          "\\newcommand{\\kelvin}{\\text{K}}"
+          "\\newcommand{\\kilogram}{\\text{kg}}"
+          "\\newcommand{\\gram}{\\text{g}}"
+          "\\newcommand{\\metre}{\\text{m}}"
+          "\\newcommand{\\mole}{\\text{mol}}"
+          "\\newcommand{\\second}{\\text{s}}"
+          "\\newcommand{\\becqerel}{Bq}"
+          "\\newcommand{\\degreeCelsius}{^\\circ\\text{C}}"
+          "\\newcommand{\\columb}{\\text{C}}"
+          "\\newcommand{\\farad}{\\text{F}}"
+          "\\newcommand{\\gray}{\\text{Gy}}"
+          "\\newcommand{\\hertz}{\\text{Hz}}"
+          "\\newcommand{\\henry}{\\text{H}}"
+          "\\newcommand{\\joule}{\\text{J}}"
+          "\\newcommand{\\lumen}{\\text{lm}}"
+          "\\newcommand{\\katal}{\\text{kat}}"
+          "\\newcommand{\\lux}{\\text{lx}}"
+          "\\newcommand{\\newton}{\\text{N}}"
+          "\\newcommand{\\ohm}{\\Omega}"
+          "\\newcommand{\\pascal}{\\text{Pa}}"
+          "\\newcommand{\\radian}{\\text{rad}}"
+          "\\newcommand{\\siemens}{\\text{S}}"
+          "\\newcommand{\\sievert}{\\text{Sv}}"
+          "\\newcommand{\\steradian}{\\text{sr}}"
+          "\\newcommand{\\tesla}{\\text{T}}"
+          "\\newcommand{\\volt}{\\text{V}}"
+          "\\newcommand{\\watt}{\\text{W}}"
+          "\\newcommand{\\weber}{\\text{Wb}}"
+          "\\newcommand{\\SI}[2]{#1\\hspace{0.5ex}#2}")))
+#+end_src
+
+** Org-ref
+#+begin_src emacs-lisp :results silent
+(use-package org-ref
+  :after org
+  :init
+  (setq org-ref-bibliography-notes "~/Documents/org-ref/notes.org"
+        org-ref-default-bibliography '("~/Documents/org-ref/references.bib")
+        org-ref-pdf-directory "~/Documents/org-ref/bibtex-pdfs/")
+
+  (unless (file-exists-p org-ref-pdf-directory)
+    (make-directory org-ref-pdf-directory t))
+
+  (setq bibtex-autokey-year-length 4
+        bibtex-autokey-name-year-separator "-"
+        bibtex-autokey-year-title-separator "-"
+        bibtex-autokey-titleword-separator "-"
+        bibtex-autokey-titlewords 2
+        bibtex-autokey-titlewords-stretch 1
+        bibtex-autokey-titleword-length 5)
+  (require 'org-ref)
+  (require 'org-ref-pdf)
+  (require 'org-ref-url-utils)
+  )
+
+#+end_src
 * Autocomplete
 
 Initially, I was gonna use eglot. Then I decided to use company. Then i just decided to use auto-complete, jedi, and irony mode.
@@ -481,7 +673,7 @@ It doesn't paste gifs. Whatever.
 
 #+begin_src emacs-lisp
   (defvar *haba-theme-dark* 'doom-old-hope)
-  (defvar *haba-theme-light* 'doom-gruvbox-light)
+  (defvar *haba-theme-light* 'humanoid-light)
   (defvar *haba-current-theme* *haba-theme-dark*)
 
   ;; disable other themes before loading new one
@@ -507,7 +699,6 @@ It doesn't paste gifs. Whatever.
 
 
   
-
 
 
 

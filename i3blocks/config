@@ -2,17 +2,28 @@
 #command=~/.config/i3blocks/weather/weather_signaler
 #interval=once
 
+[lock-screen]
+full_text=lock
+command=betterlockscreen -l
+color="#FF0000"
+
+[deadbeef]
+full_text=
+command=deadbeef
+color=#FEC925
+
 [click]
 full_text=
 command=emacs
 color=#F79494
 
+[pomstart]
+full_text=worktime
+command=~/.config/i3blocks/pomodoro/pomo_runner.py
 
-[WEATHER]
-command=~/.config/i3blocks/weather/weather_info.sh
-interval=300
-color=#FEC925
-signal=2
+[pomodoro]
+command=~/.config/i3blocks/pomodoro/pomo_state.py
+interval=1
 
 [DISK]
 command=df -h / | awk '/\//{ printf("  %4s/%s \n", $4, $2) }'

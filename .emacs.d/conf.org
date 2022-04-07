@@ -61,7 +61,7 @@ Now, for a bunch of other neat stuff:
 
 (use-package humanoid-themes)
 
-(set-face-attribute 'default nil :family "CaskaydiaCove Nerd Font Mono" :height 110)
+(set-face-attribute 'default nil :family "CaskaydiaCove Nerd Font Mono" :height 70)
 
 (use-package doom-themes
   :config
@@ -78,6 +78,9 @@ Now, for a bunch of other neat stuff:
   :hook
   (after-init . doom-modeline-mode))
 #+end_src
+
+#+RESULTS:
+| #[0 \300 \207 [dashboard-insert-startupify-lists] 1] | doom-modeline-mode | x-wm-set-size-hint | tramp-register-archive-file-name-handler | magit-maybe-define-global-key-bindings | table--make-cell-map |
 
 * Getting rid of dumb keybinds
 
@@ -173,18 +176,16 @@ And to suppress the org roam migrate warning
   A neat utility to include screenshots in org files
 
 #+begin_src emacs-lisp
-  (use-package org-download
-    :after org
-    :custom
-    (org-download-image-dir "~/.orgfiles/images")
-    (org-download-timestamp "\"\"")
-    (org-download-screenshot-method "flameshot")
-    (org-download-backend "wget")
-    :bind
-    (:map org-mode-map
-	  (("s-Y" . org-download-screenshot)
-	   ("s-y" . org-download-clipboard))))
+(use-package org-download
+  :ensure t
+  :defer t
+  :init
+  ;; Add handlers for drag-and-drop when Org is loaded.
+  (with-eval-after-load 'org
+    (org-download-enable)))
 #+end_src
+
+#+RESULTS:
 
 There is a small issue with org download at the moment, images must be on the clipboard initially. s-Y DOES NOT WORK. Screenshots are saved, yet do not get inserted into the buffer. emacs just freezes. Use screenshot machine of your choice, and use s-y to insert it into the buffer. The screenshot will also be saved to the ~/.orgfiles/images directory. Remember, you must make that directory.
 
@@ -261,12 +262,11 @@ Default header args for matlab ;)
   '((:results . "output") (:session . "*MATLAB*")))
 #+end_src
 
-
 * LaTeX
 
 XeLatex - again stolen from devin. Thank u, but this doesnt work with org-ref v3 so here's this giant code block :)
 
-+begin_src emacs-lisp
+#+begin_src emacs-lisp
 (setq org-latex-pdf-process
 					; Always need a first pass
       '("xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f"
@@ -276,11 +276,20 @@ XeLatex - again stolen from devin. Thank u, but this doesnt work with org-ref v3
 					; A few things (reference spawning/table of contents/figures/etc) change intermediary files
 					; This requires a re-run or two
         "sh -c 'while grep -q -e \"File \\`%b.out\\' has changed\" -e \"Rerun to get cross-references right\" %b.log; do xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f ;done'"))
-+end_src
-#+begin_src emacs-lisp
+#+end_src
+
+#+RESULTS:
+| xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f | sh -c 'if [ ! -f %b.bbl -o -s %b.bbl ] ;then bibtex %b; fi' | sh -c 'while grep -q -e "File \`%b.out\' has changed" -e "Rerun to get cross-references right" %b.log; do xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f ;done' |
+
+
++begin_src emacs-lisp
 (setq org-latex-pdf-process
       (list "latexmk -shell-escape -bibtex -f -pdf %f"))
-#+end_src
++end_src
+
+#+RESULTS:
+| latexmk -shell-escape -bibtex -f -pdf %f |
+
 ** Latex Header
 #+begin_src elisp :results silent
 (require 'ob)
@@ -591,6 +600,94 @@ Thanks again devin lmfaooooo
   )
 
 #+end_src
+
+
+* Vterm
+
+Vterm is good, apparently.
+
+#+begin_src fish
+switch $TERM
+    case xterm-256color # only in vterm
+        function vterm_before --on-event fish_preexec
+            vterm_cmd vterm-set-active %self
+        end
+end
+#+end_src
+
+#+begin_src fish
+# This appends to the existing fish_prompt. Place this immediatly after a custom fish_prompt, at the end of your fish_config before other vterm integration, or anywhere inbetween
+functions -c fish_prompt old_fish_prompt
+function fish_prompt
+    old_fish_prompt
+    switch $TERM
+        case xterm-256color # only in vterm
+            vterm_cmd vterm-set-idle %self
+    end
+end
+#+end_src
+
+#+begin_src fish
+function vterm_printf;
+    if [ -n "$TMUX" ]
+        # tell tmux to pass the escape sequences through
+        # (Source: http://permalink.gmane.org/gmane.comp.terminal-emulators.tmux.user/1324)
+        printf "\ePtmux;\e\e]%s\007\e\\" "$argv"
+    else if string match -q -- "screen*" "$TERM"
+        # GNU screen (screen, screen-256color, screen-256color-bce)
+        printf "\eP\e]%s\007\e\\" "$argv"
+    else
+        printf "\e]%s\e\\" "$argv"
+    end
+end
+
+function vterm_prompt_end --description 'Used for directory tracking in vterm'
+    vterm_printf '51;A'(whoami)'@'(hostname)':'(pwd)
+end
+
+function vterm_cmd --description 'Run an emacs command among the ones been defined in vterm-eval-cmds.'
+    set -l vterm_elisp ()
+    for arg in $argv
+        set -a vterm_elisp (printf '"%s" ' (string replace -a -r '([\\\\"])' '\\\\\\\\$1' $arg))
+    end
+    vterm_printf '51;E'(string join '' $vterm_elisp)
+end
+
+# my custom fish_prompt with the addition in the previous code block goes somewhere in here
+
+functions -c fish_prompt vterm_old_fish_prompt
+function fish_prompt --description 'Write out the prompt; do not replace this. Instead, put this at end of your file.'
+    printf "%b" (string join "\n" (vterm_old_fish_prompt))
+    vterm_prompt_end
+end
+#+end_src
+
+
+#+begin_src emacs-lisp
+(use-package vterm
+  :ensure-system-package fish
+  :init
+  (setq vterm-shell "fish")
+  (setq vterm-kill-buffer-on-exit "t")
+  (setq vterm-buffer-name-string "vterm %s")
+  :config
+  (define-key vterm-mode-map (kbd "M-<up>")    #'vterm--self-insert)
+  (define-key vterm-mode-map (kbd "M-<down>")  #'vterm--self-insert)
+  (define-key vterm-mode-map (kbd "M-<left>")  #'vterm--self-insert)
+  (define-key vterm-mode-map (kbd "M-<right>") #'vterm--self-insert)
+  (define-key vterm-mode-map (kbd "C-<left>")  #'vterm--self-insert)
+  (define-key vterm-mode-map (kbd "C-<right>") #'vterm--self-insert)
+  (define-key vterm-mode-map [C-backspace]     #'vterm--self-insert)
+  (define-key vterm-mode-map [C-delete]        #'vterm--self-insert)
+  (push (list "vterm-set-idle"   'vterm-set-idle)   vterm-eval-cmds)
+  (push (list "vterm-set-active" 'vterm-set-active) vterm-eval-cmds))
+#+end_src
+
+
+#+RESULTS:
+: t
+
+
 * Autocomplete
 
 Initially, I was gonna use eglot. Then I decided to use company. Then i just decided to use auto-complete, jedi, and irony mode.

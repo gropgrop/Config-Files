@@ -265,7 +265,7 @@ Default header args for matlab ;)
 ** Making Org Pretty 
 From [[https://github.com/minad/org-modern][github]], org-modern
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp results: nil
 (use-package org-modern)
 (add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
@@ -276,6 +276,7 @@ From [[https://github.com/minad/org-modern][github]], org-modern
  org-catch-invisible-edits 'show-and-error
  org-special-ctrl-a/e t
  org-insert-heading-respect-content t
+ org-modern-block nil
 
  ;; Org styling, hide markup etc.
  org-hide-emphasis-markers t
@@ -292,9 +293,41 @@ From [[https://github.com/minad/org-modern][github]], org-modern
  "⭠ now ─────────────────────────────────────────────────")
 #+end_src 
 
-#+RESULTS:
-: ⭠ now ─────────────────────────────────────────────────
+Now, for SVG tag mode
+#+begin_src emacs-lisp
+(use-package svg-tag-mode)
 
+(setq svg-tag-tags
+      '((":TODO:" . ((lambda (tag) (svg-tag-make "TODO"))))))
+
+(setq svg-tag-tags
+      '(("\\(:#[A-Za-z0-9]+\\)" . ((lambda (tag)
+                                     (svg-tag-make tag :beg 2))))
+        ("\\(:#[A-Za-z0-9]+:\\)$" . ((lambda (tag)
+                                       (svg-tag-make tag :beg 2 :end -1))))))
+#+end_src
+
+
+#+RESULTS:
+| \(:#[A-Za-z0-9]+\)   | (lambda (tag) (svg-tag-make tag :beg 2))         |
+| \(:#[A-Za-z0-9]+:\)$ | (lambda (tag) (svg-tag-make tag :beg 2 :end -1)) |
+
+** Org Mode Keywords
+Adding a few of my own org mode keywords, because progress is never really as simple as "TODO" and "DONE"
+
+#+begin_src emacs-lisp
+ (setq org-todo-keywords
+  '((sequence "TODO"
+      "MAYBE"
+      "IN-PROG"
+      "WAITING"
+      "DONE"
+      "DEFERRED"
+      "CANCELLED")))
+#+end_src
+
+#+RESULTS:
+| sequence | TODO | MAYBE | IN-PROG | WAITING | DONE | DEFERRED | CANCELLED |
 
 * LaTeX
 
@@ -314,8 +347,6 @@ XeLatex - again stolen from devin. Thank u, but this doesnt work with org-ref v3
 
 #+RESULTS:
 | xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f | sh -c 'if [ ! -f %b.bbl -o -s %b.bbl ] ;then bibtex %b; fi' | sh -c 'while grep -q -e "File \`%b.out\' has changed" -e "Rerun to get cross-references right" %b.log; do xelatex -8bit -shell-escape -interaction nonstopmode -output-directory %o %f ;done' |
-
-
 +begin_src emacs-lisp
 (setq org-latex-pdf-process
       (list "latexmk -shell-escape -bibtex -f -pdf %f"))
@@ -521,12 +552,15 @@ pdfborderstyle={/S/U/W 1}}\n"))
 ** Latex Previews
 Thanks again devin lmfaooooo
 [[https://github.com/yangsheng6810/org-latex-impatient][org-latex-impatient]].
+three
+$test$four
+five
 
 #+begin_src elisp :results silent
 (defun update-org-latex-fragment-scale ()
   (let ((text-scale-factor (expt text-scale-mode-step text-scale-mode-amount)))
-    (plist-put org-format-latex-options :scale (* 1.7 text-scale-factor))
-    (setq org-latex-impatient-scale (* 2.6 text-scale-factor))
+    (plist-put org-format-latex-options :scale (* 1 text-scale-factor))
+    (setq org-latex-impatient-scale (* 1 text-scale-factor))
     (org-latex-preview '(16)))
   )
 
@@ -610,16 +644,19 @@ Thanks again devin lmfaooooo
 
 ** Org-ref
 #+begin_src emacs-lisp :results silent
+
+
 (use-package org-ref
   :after org
   :init
   (setq org-ref-bibliography-notes "~/Documents/org-ref/notes.org"
         org-ref-default-bibliography '("~/Documents/org-ref/references.bib")
         org-ref-pdf-directory "~/Documents/org-ref/bibtex-pdfs/")
-
+ 
   (unless (file-exists-p org-ref-pdf-directory)
     (make-directory org-ref-pdf-directory t))
-
+  (setq bibtex-completion-bibliography
+	'("~/Documents/org-ref/references.bib"))
   (setq bibtex-autokey-year-length 4
         bibtex-autokey-name-year-separator "-"
         bibtex-autokey-year-title-separator "-"
@@ -627,10 +664,13 @@ Thanks again devin lmfaooooo
         bibtex-autokey-titlewords 2
         bibtex-autokey-titlewords-stretch 1
         bibtex-autokey-titleword-length 5)
+  (setq org-ref-default-citation-link "citep")
   (require 'org-ref)
   (require 'org-ref-pdf)
   (require 'org-ref-url-utils)
   )
+
+
 
 #+end_src
 
